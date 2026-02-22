@@ -61,7 +61,7 @@ void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
 }
 }
 
-void run_serial(size_t n, size_t m)
+double run_serial(size_t n, size_t m)
 {
 	const auto start{std::chrono::steady_clock::now()};
 	matrix_vector_product(m, n);
@@ -69,9 +69,11 @@ void run_serial(size_t n, size_t m)
 	const std::chrono::duration<double> elapsed_seconds{end - start};
 
 	printf("Elapsed time (serial): %.6f sec.\n", elapsed_seconds.count());
+
+	return elapsed_seconds.count();
 }
 
-void run_parallel(size_t n, size_t m, size_t count_t)
+double run_parallel(size_t n, size_t m, size_t count_t)
 {
 
 	const auto start{std::chrono::steady_clock::now()};
@@ -80,27 +82,36 @@ void run_parallel(size_t n, size_t m, size_t count_t)
 	const std::chrono::duration<double> elapsed_seconds{end - start};
 
 	printf("Elapsed time (parallel): %.6f sec.\n", elapsed_seconds.count());
+
+	return elapsed_seconds.count();
 }
 
 int main()
 {
 	int threads_array[7] = {2, 4, 7, 8, 16, 20, 40};
 	int size_array[2] = {20000, 40000};
-
+	vector<double> res(16);
 
 	for (int i = 0; i < 2; i++)
 	{
 		size_t M = size_array[i];
 		size_t N = M;
 		cout << "SIZE: " << M << endl;
-		run_serial(M, N);
+		res[i*8] = run_serial(M, N);
 		cout << endl;
 		for (int j = 0; j < 7; j++)
 		{
 			int count_t = threads_array[j];
-			run_parallel(M, N, count_t);
+			res[i*8 + j + 1] = run_parallel(M, N, count_t);
 		}
 		cout << "\n\n\n";
+	}
+
+	for (int i = 0; i < 16; i++)
+	{
+		if (i == 8)
+			cout << endl;
+		printf("%.6f ", res[i]);
 	}
 	return 0;
 }
