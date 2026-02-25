@@ -3,6 +3,8 @@
 #include <time.h>
 #include <omp.h>
 #include <chrono>
+#include <vector>
+#include <fstream>
 
 const double PI = 3.14159265358979323846;
 const double a = -4.0;
@@ -79,19 +81,35 @@ double run_parallel(size_t count_t)
 int main(int argc, char **argv)
 {
 	size_t threads_array[7] = {2, 4, 7, 8, 16, 20, 40};
+	double res[8];
 
 	printf("Integration f(x) on [%.12f, %.12f], nsteps = %d\n", a, b, nsteps);
 
-
 	double tserial = run_serial();
 	printf("Execution time (serial): %.6f\n", tserial);
+
+	res[0] = tserial;
 
 	for (int i = 0; i < 7; i++) {
 		double tparallel = run_parallel(threads_array[i]);
 
 		printf("Execution time (parallel): %.6f\n", tparallel);
 		printf("Speedup: %.2f\n", tserial / tparallel);
+
+		res[i+1] = tparallel;
 	}
+
+	std::ofstream out;
+	out.open("integral_results.txt");
+	if (out.is_open())
+	{
+		for (int i = 0; i < 8; i++)
+			{
+				out << res[i] << " ";
+			}
+	}
+
+	out.close();
 	return 0;
 }
 

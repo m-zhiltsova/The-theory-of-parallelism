@@ -2,6 +2,8 @@
 #include <omp.h>
 #include <vector>
 #include <chrono>
+#include <string.h>
+#include <fstream>
 
 using namespace std;
 
@@ -33,6 +35,9 @@ void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
 	vector<vector<double>> a(m, vector<double>(n));
 	vector<double> b(n);
 	vector<double> c(m);
+
+	for (size_t j = 0; j < n; j++)
+		b[j] = j;
 #pragma omp parallel num_threads(count_t)
 {
 
@@ -47,10 +52,6 @@ void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
 		for (size_t j = 0; j < n; j++)
 			a[i][j] = i + j;
 	}
-
-	for (size_t j = 0; j < n; j++)
-		b[j] = j;
-
 	
 	for (int i = lb; i <= ub; i++)
 	{
@@ -90,7 +91,7 @@ int main()
 {
 	int threads_array[7] = {2, 4, 7, 8, 16, 20, 40};
 	int size_array[2] = {20000, 40000};
-	vector<double> res(16);
+	double res[16];
 
 	for (int i = 0; i < 2; i++)
 	{
@@ -107,11 +108,18 @@ int main()
 		cout << "\n\n\n";
 	}
 
-	for (int i = 0; i < 16; i++)
+	std::ofstream out;
+	out.open("dgemv_results.txt");
+	if (out.is_open())
 	{
-		if (i == 8)
-			cout << endl;
-		printf("%.6f ", res[i]);
+		for (int i = 0; i < 16; i++)
+			{
+				if (i == 8)
+					out << endl;
+				out << res[i] << " ";
+			}
 	}
+
+	out.close();
 	return 0;
 }
