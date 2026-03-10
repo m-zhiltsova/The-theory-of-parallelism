@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <vector>
 
 using namespace std;
 
@@ -7,7 +8,7 @@ using namespace std;
 
 template <typename T>
 T calculate_sum_of_sin() {
-	T* array = new T[size];
+	vector<T> array(size);
 	T sum = 0;
 
 	for (int i = 0; i < size; i += 1) {
@@ -15,7 +16,6 @@ T calculate_sum_of_sin() {
 		sum += array[i];
 	}
 
-	delete[] array;
 	return sum;
 }
 
