@@ -4,62 +4,60 @@
 #include <chrono>
 #include <string.h>
 #include <fstream>
+#include <future>
 
 using namespace std;
 
-void matrix_vector_product(size_t m, size_t n)
+void matrix_vector_product_omp(size_t m, size_t n)
 {
-	vector<vector<double>> a(m, vector<double>(n));
+	vector<double> a(m*n);
 	vector<double> b(n);
 	vector<double> c(m);
 
-	for (size_t i = 0; i < m; i++)
+	vector<future<void>> futures(n*m);
+
+	for (int i = 0; i < n; i++)
 	{
-		for (size_t j = 0; j < n; j++)
-			a[i][j] = i + j;
+		futures.push_back(async(launch::async, [](vector<double> b, int x) 
+					{ b[x] = x; }, b, i));
 	}
 
-	for (size_t j = 0; j < n; j++)
-		b[j] = j;
 
 	for (int i = 0; i < m; i++)
 	{
 		c[i] = 0.0;
-		for (int j = 0; j < n; j++)
-			c[i] += a[i][j] * b[j];
+		b[i] = i;		// Инициализация b-вектора
+						// Работает только для m = n
+
+		for (int j = 0; j < n; j++) {
+			futures.push_back(async(launch::async, []
+						(vector<double> a, vector<double> b, vector<double> c, int i, int j, int n) 
+				{
+					a[i*n+j] = i + j; // Инициализация a-матрица
+					c[i] += a[i*n+j] * b[j];
+				}, a, b, c, i, j, n));
+		}
 	}
 }
 
-void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
+void matrix_vector_product(size_t m, size_t n)
 {
-	vector<vector<double>> a(m, vector<double>(n));
+	vector<double> a(m*n);
 	vector<double> b(n);
 	vector<double> c(m);
 
-	for (size_t j = 0; j < n; j++)
-		b[j] = j;
-#pragma omp parallel num_threads(count_t)
-{
-
-	int nthreads = omp_get_num_threads();
-	int threadid = omp_get_thread_num();
-	int items_per_thread = m / nthreads;
-	int lb = threadid * items_per_thread;
-	int ub = (threadid == nthreads - 1) ? (m - 1) : (lb + items_per_thread - 1);
-
-	for (size_t i = lb; i <= ub; i++)
-	{
-		for (size_t j = 0; j < n; j++)
-			a[i][j] = i + j;
-	}
-	
-	for (int i = lb; i <= ub; i++)
+	for (int i = 0; i < m; i++)
 	{
 		c[i] = 0.0;
-		for (int j = 0; j < n; j++)
-			c[i] += a[i][j] * b[j];
+		b[i] = i;		// Инициализация b-вектора
+						// Работает только для m = n
+
+		for (int j = 0; j < n; j++) {
+			a[i*n+j] = i + j; // Инициализация a-матрица
+			
+			c[i] += a[i*n+j] * b[j];
+		}
 	}
-}
 }
 
 double run_serial(size_t n, size_t m)
@@ -78,7 +76,7 @@ double run_parallel(size_t n, size_t m, size_t count_t)
 {
 
 	const auto start{std::chrono::steady_clock::now()};
-	matrix_vector_product_omp(m, n, count_t);
+	matrix_vector_product_omp(m, n);
 	const auto end{std::chrono::steady_clock::now()};
 	const std::chrono::duration<double> elapsed_seconds{end - start};
 
@@ -89,9 +87,9 @@ double run_parallel(size_t n, size_t m, size_t count_t)
 
 int main()
 {
-	int threads_array[7] = {2, 4, 7, 8, 16, 20, 40};
-	int size_array[2] = {20000, 40000};
-	double res[16];
+	std::vector<int> threads_array = {2, 4, 7, 8, 16, 20, 40};
+	std::vector<int> size_array = {20000, 40000};
+	std::vector<int> res(16);
 
 	for (int i = 0; i < 2; i++)
 	{
