@@ -6,6 +6,8 @@
 #include <vector>
 #include <fstream>
 
+using namespace std;
+
 const double PI = 3.14159265358979323846;
 const double a = -4.0;
 const double b = 4.0;
@@ -58,10 +60,10 @@ double integrate_omp(double (*func)(double), double a, double b, int n, size_t c
 
 double run_serial()
 {
-	const auto start{std::chrono::steady_clock::now()};
+	const auto start{chrono::steady_clock::now()};
 	double res = integrate(func, a, b, nsteps);
-	const auto end{std::chrono::steady_clock::now()};
-	const std::chrono::duration<double> elapsed_seconds{end - start};
+	const auto end{chrono::steady_clock::now()};
+	const chrono::duration<double> elapsed_seconds{end - start};
 	printf("Result (serial): %.12f; error %12f\n", res, fabs(res - sqrt(PI)));
 
 	return elapsed_seconds.count();
@@ -69,10 +71,10 @@ double run_serial()
 
 double run_parallel(size_t count_t)
 {
-	const auto start{std::chrono::steady_clock::now()};
+	const auto start{chrono::steady_clock::now()};
 	double res = integrate_omp(func, a, b, nsteps, count_t);
-	const auto end{std::chrono::steady_clock::now()};
-	const std::chrono::duration<double> elapsed_seconds{end - start};
+	const auto end{chrono::steady_clock::now()};
+	const chrono::duration<double> elapsed_seconds{end - start};
 
 	printf("Result (parallel): %.12f, error .%12f\n", res, fabs(res - sqrt(PI)));
 	return elapsed_seconds.count();
@@ -99,7 +101,7 @@ int main(int argc, char **argv)
 		res[i+1] = tparallel;
 	}
 
-	std::ofstream out;
+	ofstream out;
 	out.open("integral_results.txt");
 	if (out.is_open())
 	{

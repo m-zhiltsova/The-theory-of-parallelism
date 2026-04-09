@@ -69,7 +69,6 @@ void variant_1(size_t n, size_t count_t) {
 	    eps = u / b_2;
 	}
 }
-    // cout << "Решение" << endl;
     // for(i = 0; i < n; i++)
     // 	cout << "x[" << i + 1 << "]=" << x[i] << endl;
 }
@@ -128,7 +127,6 @@ void variant_2(size_t n, size_t count_t) {
 	    }
 	}
 
-    // cout << "Решение" << endl;
     // for(i = 0; i < n; i++)
     // 	cout << "x[" << i + 1 << "]=" << x[i] << endl;
 }
@@ -137,10 +135,10 @@ void variant_2(size_t n, size_t count_t) {
 double run_variant_1(size_t n, size_t count_t)
 {
 
-	const auto start{std::chrono::steady_clock::now()};
+	const auto start{chrono::steady_clock::now()};
 	variant_1(n, count_t);
-	const auto end{std::chrono::steady_clock::now()};
-	const std::chrono::duration<double> elapsed_seconds{end - start};
+	const auto end{chrono::steady_clock::now()};
+	const chrono::duration<double> elapsed_seconds{end - start};
 
 	printf("Elapsed time variant 1: %.6f sec.\n", elapsed_seconds.count());
 
@@ -149,10 +147,10 @@ double run_variant_1(size_t n, size_t count_t)
 
 double run_variant_2(size_t n, size_t count_t) {
 
-	const auto start{std::chrono::steady_clock::now()};
+	const auto start{chrono::steady_clock::now()};
 	variant_2(n, count_t);
-	const auto end{std::chrono::steady_clock::now()};
-	const std::chrono::duration<double> elapsed_seconds{end - start};
+	const auto end{chrono::steady_clock::now()};
+	const chrono::duration<double> elapsed_seconds{end - start};
 
 	printf("Elapsed time variant 1: %.6f sec.\n", elapsed_seconds.count());
 
