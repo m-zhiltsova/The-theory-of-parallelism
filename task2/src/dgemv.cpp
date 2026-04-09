@@ -9,14 +9,14 @@ using namespace std;
 
 void matrix_vector_product(size_t m, size_t n)
 {
-	vector<vector<double>> a(m, vector<double>(n));
+	vector<double> a(m*n);
 	vector<double> b(n);
 	vector<double> c(m);
 
 	for (size_t i = 0; i < m; i++)
 	{
 		for (size_t j = 0; j < n; j++)
-			a[i][j] = i + j;
+			a[i*n+j] = i + j;
 	}
 
 	for (size_t j = 0; j < n; j++)
@@ -26,13 +26,13 @@ void matrix_vector_product(size_t m, size_t n)
 	{
 		c[i] = 0.0;
 		for (int j = 0; j < n; j++)
-			c[i] += a[i][j] * b[j];
+			c[i] += a[i*n+j] * b[j];
 	}
 }
 
 void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
 {
-	vector<vector<double>> a(m, vector<double>(n));
+	vector<double> a(m*n);
 	vector<double> b(n);
 	vector<double> c(m);
 
@@ -50,14 +50,14 @@ void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
 	for (size_t i = lb; i <= ub; i++)
 	{
 		for (size_t j = 0; j < n; j++)
-			a[i][j] = i + j;
+			a[i*n+j] = i + j;
 	}
 	
 	for (int i = lb; i <= ub; i++)
 	{
 		c[i] = 0.0;
 		for (int j = 0; j < n; j++)
-			c[i] += a[i][j] * b[j];
+			c[i] += a[i*n+j] * b[j];
 	}
 }
 }
@@ -89,9 +89,9 @@ double run_parallel(size_t n, size_t m, size_t count_t)
 
 int main()
 {
-	int threads_array[7] = {2, 4, 7, 8, 16, 20, 40};
-	int size_array[2] = {20000, 40000};
-	double res[16];
+	vector<int> threads_array = {2, 4, 7, 8, 16, 20, 40};
+	vector<int> size_array = {20000, 40000};
+	vector<double> res(16);
 
 	for (int i = 0; i < 2; i++)
 	{

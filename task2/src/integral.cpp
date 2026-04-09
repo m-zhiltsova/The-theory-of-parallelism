@@ -80,8 +80,8 @@ double run_parallel(size_t count_t)
 
 int main(int argc, char **argv)
 {
-	size_t threads_array[7] = {2, 4, 7, 8, 16, 20, 40};
-	double res[8];
+	vector<size_t> threads_array = {2, 4, 7, 8, 16, 20, 40};
+	vector<double> res(8);
 
 	printf("Integration f(x) on [%.12f, %.12f], nsteps = %d\n", a, b, nsteps);
 
