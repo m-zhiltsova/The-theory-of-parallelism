@@ -34,7 +34,6 @@ void variant_1(const vector<double>& a, const vector<double>& b,
     else
         omp_set_schedule(omp_sched_auto, 0);
 
-<<<<<<< HEAD
     while (eps > eps_target) {
         double u = 0.0, b_2 = 0.0;
         #pragma omp parallel for num_threads(count_t) reduction(+:u, b_2) schedule(runtime)
@@ -55,13 +54,6 @@ void variant_1(const vector<double>& a, const vector<double>& b,
         b_2 = sqrt(b_2);
         eps = u / b_2;
     }
-=======
-	    eps = u / b_2;
-	}
-}
-    // for(i = 0; i < n; i++)
-    // 	cout << "x[" << i + 1 << "]=" << x[i] << endl;
->>>>>>> refs/remotes/origin/main
 }
 
 void variant_2(const vector<double>& a, const vector<double>& b,
@@ -109,11 +101,12 @@ void variant_2(const vector<double>& a, const vector<double>& b,
 
 int main() {
     const double eps_target = 1e-5;
-    const int target_serial_seconds = 30;
     const int warmup_runs = 1;
     const int measure_runs = 5;
 
     size_t N = 10000;
+    double serial_time_v1 = 0.0;
+    vector<double> a, b;
     double tau = 1.0 / (N + 1);
     a.assign(N * N, 0.0);
     b.resize(N);
@@ -203,51 +196,7 @@ int main() {
         out << sched_name << "," << chunk << ": " << avg_time << "\n";
     }
 
-<<<<<<< HEAD
     out.close();
     cout << "\nResults saved to system_results.txt" << endl;
     return 0;
-=======
-	    eps = u / b_2;
-	    for(i = 0; i < n; i++) {
-	        xo[i] = x[i];
-	    }
-	}
-
-    // for(i = 0; i < n; i++)
-    // 	cout << "x[" << i + 1 << "]=" << x[i] << endl;
-}
-	
-
-double run_variant_1(size_t n, size_t count_t)
-{
-
-	const auto start{chrono::steady_clock::now()};
-	variant_1(n, count_t);
-	const auto end{chrono::steady_clock::now()};
-	const chrono::duration<double> elapsed_seconds{end - start};
-
-	printf("Elapsed time variant 1: %.6f sec.\n", elapsed_seconds.count());
-
-	return elapsed_seconds.count();
-}
-
-double run_variant_2(size_t n, size_t count_t) {
-
-	const auto start{chrono::steady_clock::now()};
-	variant_2(n, count_t);
-	const auto end{chrono::steady_clock::now()};
-	const chrono::duration<double> elapsed_seconds{end - start};
-
-	printf("Elapsed time variant 1: %.6f sec.\n", elapsed_seconds.count());
-
-	return elapsed_seconds.count();
-}
-
-
-int main()
-{
-	run_variant_1(50, 5);
-	return 0;
->>>>>>> refs/remotes/origin/main
 }
