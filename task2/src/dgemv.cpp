@@ -4,122 +4,131 @@
 #include <chrono>
 #include <string.h>
 #include <fstream>
+#include <algorithm>
 
 using namespace std;
 
-void matrix_vector_product(size_t m, size_t n)
-{
-	vector<vector<double>> a(m, vector<double>(n));
-	vector<double> b(n);
-	vector<double> c(m);
-
-	for (size_t i = 0; i < m; i++)
-	{
-		for (size_t j = 0; j < n; j++)
-			a[i][j] = i + j;
-	}
-
-	for (size_t j = 0; j < n; j++)
-		b[j] = j;
-
-	for (int i = 0; i < m; i++)
-	{
-		c[i] = 0.0;
-		for (int j = 0; j < n; j++)
-			c[i] += a[i][j] * b[j];
-	}
+void serial_mult(const double* a, const double* b, double* c, size_t m, size_t n) {
+    for (size_t i = 0; i < m; ++i) {
+        double sum = 0.0;
+        for (size_t j = 0; j < n; ++j) {
+            sum += a[i * n + j] * b[j];
+        }
+        c[i] = sum;
+    }
 }
 
-void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
-{
-	vector<vector<double>> a(m, vector<double>(n));
-	vector<double> b(n);
-	vector<double> c(m);
+void parallel_mult(const double* a, const double* b, double* c, size_t m, size_t n, int count_t) {
+    #pragma omp parallel num_threads(count_t)
+    {
+        int nthreads = omp_get_num_threads();
+        int threadid = omp_get_thread_num();
+        int items_per_thread = m / nthreads;
+        int lb = threadid * items_per_thread;
+        int ub = (threadid == nthreads - 1) ? (m - 1) : (lb + items_per_thread - 1);
 
-	for (size_t j = 0; j < n; j++)
-		b[j] = j;
-#pragma omp parallel num_threads(count_t)
-{
-
-	int nthreads = omp_get_num_threads();
-	int threadid = omp_get_thread_num();
-	int items_per_thread = m / nthreads;
-	int lb = threadid * items_per_thread;
-	int ub = (threadid == nthreads - 1) ? (m - 1) : (lb + items_per_thread - 1);
-
-	for (size_t i = lb; i <= ub; i++)
-	{
-		for (size_t j = 0; j < n; j++)
-			a[i][j] = i + j;
-	}
-	
-	for (int i = lb; i <= ub; i++)
-	{
-		c[i] = 0.0;
-		for (int j = 0; j < n; j++)
-			c[i] += a[i][j] * b[j];
-	}
-}
+        for (int i = lb; i <= ub; ++i) {
+            double sum = 0.0;
+            for (size_t j = 0; j < n; ++j) {
+                sum += a[i * n + j] * b[j];
+            }
+            c[i] = sum;
+        }
+    }
 }
 
-double run_serial(size_t n, size_t m)
-{
-	const auto start{std::chrono::steady_clock::now()};
-	matrix_vector_product(m, n);
-	const auto end{std::chrono::steady_clock::now()};
-	const std::chrono::duration<double> elapsed_seconds{end - start};
+void parallel_init(double* a, double* b, size_t m, size_t n, int count_t) {
+    #pragma omp parallel num_threads(count_t)
+    {
+        int nthreads = omp_get_num_threads();
+        int threadid = omp_get_thread_num();
+        int items_per_thread = n / nthreads;
+        int lb = threadid * items_per_thread;
+        int ub = (threadid == nthreads - 1) ? (n - 1) : (lb + items_per_thread - 1);
+        for (size_t j = lb; j <= ub; ++j) {
+            b[j] = static_cast<double>(j);
+        }
+    }
 
-	printf("Elapsed time (serial): %.6f sec.\n", elapsed_seconds.count());
+    #pragma omp parallel num_threads(count_t)
+    {
+        int nthreads = omp_get_num_threads();
+        int threadid = omp_get_thread_num();
+        int items_per_thread = m / nthreads;
+        int lb = threadid * items_per_thread;
+        int ub = (threadid == nthreads - 1) ? (m - 1) : (lb + items_per_thread - 1);
 
-	return elapsed_seconds.count();
+        for (size_t i = lb; i <= ub; ++i) {
+            for (size_t j = 0; j < n; ++j) {
+                a[i * n + j] = static_cast<double>(i + j);
+            }
+        }
+    }
 }
 
-double run_parallel(size_t n, size_t m, size_t count_t)
-{
-
-	const auto start{std::chrono::steady_clock::now()};
-	matrix_vector_product_omp(m, n, count_t);
-	const auto end{std::chrono::steady_clock::now()};
-	const std::chrono::duration<double> elapsed_seconds{end - start};
-
-	printf("Elapsed time (parallel): %.6f sec.\n", elapsed_seconds.count());
-
-	return elapsed_seconds.count();
+double run_serial(size_t m, size_t n, const vector<double>& a, const vector<double>& b, vector<double>& c) {
+    const auto start = chrono::steady_clock::now();
+    serial_mult(a.data(), b.data(), c.data(), m, n);
+    const auto end = chrono::steady_clock::now();
+    return chrono::duration<double>(end - start).count();
 }
 
-int main()
-{
-	int threads_array[7] = {2, 4, 7, 8, 16, 20, 40};
-	int size_array[2] = {20000, 40000};
-	double res[16];
+double run_parallel(size_t m, size_t n, int count_t, 
+                    const vector<double>& a, const vector<double>& b, vector<double>& c) {
+    const auto start = chrono::steady_clock::now();
+    parallel_mult(a.data(), b.data(), c.data(), m, n, count_t);
+    const auto end = chrono::steady_clock::now();
+    return chrono::duration<double>(end - start).count();
+}
 
-	for (int i = 0; i < 2; i++)
-	{
-		size_t M = size_array[i];
-		size_t N = M;
-		cout << "SIZE: " << M << endl;
-		res[i*8] = run_serial(M, N);
-		cout << endl;
-		for (int j = 0; j < 7; j++)
-		{
-			int count_t = threads_array[j];
-			res[i*8 + j + 1] = run_parallel(M, N, count_t);
-		}
-		cout << "\n\n\n";
-	}
+int main() {
+    const int warmup_runs = 1;
+    const int measure_runs = 5;
 
-	std::ofstream out;
-	out.open("dgemv_results.txt");
-	if (out.is_open())
-	{
-		for (int i = 0; i < 16; i++)
-			{
-				if (i == 8)
-					out << endl;
-				out << res[i] << " ";
-			}
-	}
+    int threads_array[] = {1, 2, 4, 7, 8, 16, 20, 40};
+    int num_threads_counts = sizeof(threads_array) / sizeof(threads_array[0]);
+    size_t sizes[] = {20000, 40000};
 
-	out.close();
-	return 0;
+    ofstream out("dgemv_results.txt");
+    out.precision(6);
+    out << fixed;
+
+    for (size_t size : sizes) {
+        size_t m = size, n = size;
+        cout << "SIZE: " << m << endl;
+
+        vector<double> a(m * n);
+        vector<double> b(n);
+        vector<double> c(m);
+
+        parallel_init(a.data(), b.data(), m, n, omp_get_max_threads());
+        double serial_time = 0.0;
+        for (int r = 0; r < warmup_runs + measure_runs; ++r) {
+            fill(c.begin(), c.end(), 0.0);
+            double t = run_serial(m, n, a, b, c);
+            if (r >= warmup_runs) serial_time += t;
+        }
+        serial_time /= measure_runs;
+        cout << "Serial avg time: " << serial_time << " sec." << endl;
+        out << serial_time << " ";
+
+        for (int j = 0; j < num_threads_counts; ++j) {
+            int count_t = threads_array[j];
+            if (count_t == 1) continue;
+            double parallel_time = 0.0;
+            for (int r = 0; r < warmup_runs + measure_runs; ++r) {
+                fill(c.begin(), c.end(), 0.0);
+                double t = run_parallel(m, n, count_t, a, b, c);
+                if (r >= warmup_runs) parallel_time += t;
+            }
+            parallel_time /= measure_runs;
+            cout << "Threads: " << count_t << "  avg time: " << parallel_time << " sec." << endl;
+            out << parallel_time << " ";
+        }
+        out << endl;
+        cout << "\n\n";
+    }
+
+    out.close();
+    return 0;
 }
