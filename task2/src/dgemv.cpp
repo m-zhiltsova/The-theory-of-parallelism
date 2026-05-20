@@ -8,6 +8,7 @@
 
 using namespace std;
 
+<<<<<<< HEAD
 void serial_mult(const double* a, const double* b, double* c, size_t m, size_t n) {
     for (size_t i = 0; i < m; ++i) {
         double sum = 0.0;
@@ -35,6 +36,52 @@ void parallel_mult(const double* a, const double* b, double* c, size_t m, size_t
             c[i] = sum;
         }
     }
+=======
+void matrix_vector_product(size_t m, size_t n)
+{
+	vector<double> a(m*n);
+	vector<double> b(n);
+	vector<double> c(m);
+
+	for (size_t i = 0; i < m; i++)
+	{
+		for (size_t j = 0; j < n; j++)
+			a[i*n+j] = i + j;
+	}
+
+	for (size_t j = 0; j < n; j++)
+		b[j] = j;
+
+	for (int i = 0; i < m; i++)
+	{
+		c[i] = 0.0;
+		for (int j = 0; j < n; j++)
+			c[i] += a[i*n+j] * b[j];
+	}
+}
+
+void matrix_vector_product_omp(size_t m, size_t n, size_t count_t)
+{
+	vector<double> a(m*n);
+	vector<double> c(m);
+
+
+	vector<double> b(n);
+
+	// #pragma omp parallel for num_threads(count_t) schedule(static)
+	for (int j = 0; j < n; j++)
+		b[j] = j;
+
+	#pragma omp parallel for num_threads(count_t) schedule(static)
+	for (int i = 0; i < m; i++)
+	{	
+		c[i] = 0.0;
+		for (int j = 0; j < n; j++){
+			a[i*n+j] = i + j;
+			c[i] += a[i*n+j] * b[j];
+		}
+	}
+>>>>>>> refs/remotes/origin/main
 }
 
 void parallel_init(double* a, double* b, size_t m, size_t n, int count_t) {
@@ -73,6 +120,7 @@ double run_serial(size_t m, size_t n, const vector<double>& a, const vector<doub
     return chrono::duration<double>(end - start).count();
 }
 
+<<<<<<< HEAD
 double run_parallel(size_t m, size_t n, int count_t, 
                     const vector<double>& a, const vector<double>& b, vector<double>& c) {
     const auto start = chrono::steady_clock::now();
@@ -80,6 +128,13 @@ double run_parallel(size_t m, size_t n, int count_t,
     const auto end = chrono::steady_clock::now();
     return chrono::duration<double>(end - start).count();
 }
+=======
+int main()
+{
+	vector<int> threads_array = {2, 4, 7, 8, 16, 20, 40};
+	vector<int> size_array = {20000, 40000};
+	vector<double> res(16);
+>>>>>>> refs/remotes/origin/main
 
 int main() {
     const int warmup_runs = 1;
@@ -89,6 +144,7 @@ int main() {
     int num_threads_counts = sizeof(threads_array) / sizeof(threads_array[0]);
     size_t sizes[] = {20000, 40000};
 
+<<<<<<< HEAD
     ofstream out("dgemv_results.txt");
     out.precision(6);
     out << fixed;
@@ -131,4 +187,8 @@ int main() {
 
     out.close();
     return 0;
+=======
+	out.close();
+	return 0;
+>>>>>>> refs/remotes/origin/main
 }

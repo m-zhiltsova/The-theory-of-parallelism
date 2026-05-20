@@ -6,6 +6,8 @@
 #include <vector>
 #include <iomanip>
 
+using namespace std;
+
 const double PI = 3.14159265358979323846;
 const double a = -4.0;
 const double b = 4.0;
@@ -49,10 +51,20 @@ double integrate_omp(double (*f)(double), double a, double b, int n, int count_t
     return sum;
 }
 
+<<<<<<< HEAD
 int main() {
     const int warmup_runs = 1;
     const int measure_runs = 5;
     std::vector<int> threads = {1, 2, 4, 7, 8, 16, 20, 40};
+=======
+double run_serial()
+{
+	const auto start{chrono::steady_clock::now()};
+	double res = integrate(func, a, b, nsteps);
+	const auto end{chrono::steady_clock::now()};
+	const chrono::duration<double> elapsed_seconds{end - start};
+	printf("Result (serial): %.12f; error %12f\n", res, fabs(res - sqrt(PI)));
+>>>>>>> refs/remotes/origin/main
 
     double result_serial = integrate(func, a, b, nsteps);
     printf("Integration f(x) on [%.12f, %.12f], nsteps = %d\n", a, b, nsteps);
@@ -102,3 +114,53 @@ int main() {
 
     return 0;
 }
+<<<<<<< HEAD
+=======
+
+double run_parallel(size_t count_t)
+{
+	const auto start{chrono::steady_clock::now()};
+	double res = integrate_omp(func, a, b, nsteps, count_t);
+	const auto end{chrono::steady_clock::now()};
+	const chrono::duration<double> elapsed_seconds{end - start};
+
+	printf("Result (parallel): %.12f, error .%12f\n", res, fabs(res - sqrt(PI)));
+	return elapsed_seconds.count();
+}
+
+int main(int argc, char **argv)
+{
+	vector<size_t> threads_array = {2, 4, 7, 8, 16, 20, 40};
+	vector<double> res(8);
+
+	printf("Integration f(x) on [%.12f, %.12f], nsteps = %d\n", a, b, nsteps);
+
+	double tserial = run_serial();
+	printf("Execution time (serial): %.6f\n", tserial);
+
+	res[0] = tserial;
+
+	for (int i = 0; i < 7; i++) {
+		double tparallel = run_parallel(threads_array[i]);
+
+		printf("Execution time (parallel): %.6f\n", tparallel);
+		printf("Speedup: %.2f\n", tserial / tparallel);
+
+		res[i+1] = tparallel;
+	}
+
+	ofstream out;
+	out.open("integral_results.txt");
+	if (out.is_open())
+	{
+		for (int i = 0; i < 8; i++)
+			{
+				out << res[i] << " ";
+			}
+	}
+
+	out.close();
+	return 0;
+}
+
+>>>>>>> refs/remotes/origin/main
