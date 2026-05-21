@@ -27,6 +27,7 @@ logger = logging.getLogger("YOLO-Pose-Video")
 
 
 class VideoReader:
+
     def __init__(self, video_path: str):
         self.video_path = video_path
         self.cap = cv2.VideoCapture(video_path)
@@ -93,7 +94,8 @@ def worker_thread(
 ):
     try:
         model = YOLO(model_path)
-        logger.debug("Поток %s: модель YOLO загружена.", threading.current_thread().name)
+        model.to('cpu')
+        logger.debug("Поток %s: модель YOLO загружена на CPU.", threading.current_thread().name)
     except Exception as e:
         logger.exception("Ошибка загрузки модели YOLO в потоке %s", threading.current_thread().name)
         return
@@ -105,7 +107,7 @@ def worker_thread(
             continue
 
         try:
-            results = model.predict(frame, verbose=False, stream=False)
+            results = model.predict(frame, verbose=False, stream=False, device='cpu')
             annotated_frame = results[0].plot()
             output_queue.put((frame_idx, annotated_frame))
         except Exception as e:
@@ -120,7 +122,13 @@ def worker_thread(
 
 
 def process_video_single(video_reader, video_writer, model_path):
-    model = YOLO(model_path)
+    try:
+        model = YOLO(model_path)
+        model.to('cpu')
+    except Exception as e:
+        logger.exception("Ошибка загрузки модели YOLO.")
+        raise
+
     logger.info("Запущена однопоточная обработка.")
 
     start_time = time.perf_counter()
@@ -132,7 +140,7 @@ def process_video_single(video_reader, video_writer, model_path):
             break
 
         try:
-            results = model.predict(frame, verbose=False, stream=False)
+            results = model.predict(frame, verbose=False, stream=False, device='cpu')
             annotated_frame = results[0].plot()
         except Exception as e:
             logger.exception("Ошибка инференса на кадре %d", frame_idx)

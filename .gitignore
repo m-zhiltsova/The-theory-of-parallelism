@@ -1,3 +1,4 @@
 task*/build/
 *.out
-task*/.venv/
+task*/*.txt
+task*/.venv

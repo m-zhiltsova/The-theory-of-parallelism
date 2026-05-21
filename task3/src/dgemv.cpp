@@ -6,8 +6,7 @@
 #include <fstream>
 #include <iomanip>
 
-// Последовательное умножение
-void matvec_serial(const std::vector<double>& a, const std::vector<double>& b,
+void serial(const std::vector<double>& a, const std::vector<double>& b,
                    std::vector<double>& c, size_t m, size_t n) {
     for (size_t i = 0; i < m; ++i) {
         double sum = 0.0;
@@ -18,8 +17,7 @@ void matvec_serial(const std::vector<double>& a, const std::vector<double>& b,
     }
 }
 
-// Параллельное умножение с std::thread
-void matvec_thread(const std::vector<double>& a, const std::vector<double>& b,
+void dgemv_thread(const std::vector<double>& a, const std::vector<double>& b,
                    std::vector<double>& c, size_t m, size_t n, int nthreads) {
     std::vector<std::thread> threads;
     auto worker = [&](size_t lb, size_t ub) {
@@ -43,12 +41,10 @@ void matvec_thread(const std::vector<double>& a, const std::vector<double>& b,
     for (auto& th : threads) th.join();
 }
 
-// Параллельная инициализация матрицы и вектора
 void init_parallel_threads(std::vector<double>& a, std::vector<double>& b,
                            size_t m, size_t n, int nthreads) {
     std::vector<std::thread> threads;
 
-    // Инициализация вектора b
     auto init_b = [&](size_t lb, size_t ub) {
         for (size_t j = lb; j <= ub; ++j)
             b[j] = static_cast<double>(j);
@@ -65,7 +61,6 @@ void init_parallel_threads(std::vector<double>& a, std::vector<double>& b,
     for (auto& th : threads) th.join();
     threads.clear();
 
-    // Инициализация матрицы a
     auto init_a = [&](size_t lb, size_t ub) {
         for (size_t i = lb; i <= ub; ++i) {
             for (size_t j = 0; j < n; ++j) {
@@ -94,7 +89,7 @@ int main() {
     const int init_threads = std::thread::hardware_concurrency();
     std::cout << "Using " << init_threads << " threads for parallel initialization.\n";
 
-    std::ofstream out("matvec_thread_results.txt");
+    std::ofstream out("dgemv.txt");
     out << std::fixed << std::setprecision(6);
     out << "Size Threads Serial Thread\n";
 
@@ -102,46 +97,41 @@ int main() {
         size_t m = size, n = size;
         std::cout << "\nMatrix size: " << m << "x" << n << std::endl;
 
-        // Выделение памяти и параллельная инициализация
         std::vector<double> a(m * n);
         std::vector<double> b(n);
         init_parallel_threads(a, b, m, n, init_threads);
 
         std::vector<double> c(m);
 
-        // Замер последовательного времени
         double t_serial = 0.0;
-        // Прогрев
         for (int i = 0; i < warmup; ++i) {
             std::fill(c.begin(), c.end(), 0.0);
-            matvec_serial(a, b, c, m, n);
+            serial(a, b, c, m, n);
         }
         for (int i = 0; i < measure_runs; ++i) {
             std::fill(c.begin(), c.end(), 0.0);
             auto start = std::chrono::steady_clock::now();
-            matvec_serial(a, b, c, m, n);
+            serial(a, b, c, m, n);
             auto end = std::chrono::steady_clock::now();
             t_serial += std::chrono::duration<double>(end - start).count();
         }
         t_serial /= measure_runs;
         std::cout << "Serial   : " << t_serial << " s" << std::endl;
 
-        // Замеры для многопоточного варианта (std::thread)
         for (int th : thread_counts) {
             if (th == 1) {
                 out << size << " " << th << " " << t_serial << " " << t_serial << "\n";
                 continue;
             }
             double t_thread = 0.0;
-            // Прогрев
             for (int i = 0; i < warmup; ++i) {
                 std::fill(c.begin(), c.end(), 0.0);
-                matvec_thread(a, b, c, m, n, th);
+                dgemv_thread(a, b, c, m, n, th);
             }
             for (int i = 0; i < measure_runs; ++i) {
                 std::fill(c.begin(), c.end(), 0.0);
                 auto start = std::chrono::steady_clock::now();
-                matvec_thread(a, b, c, m, n, th);
+                dgemv_thread(a, b, c, m, n, th);
                 auto end = std::chrono::steady_clock::now();
                 t_thread += std::chrono::duration<double>(end - start).count();
             }
@@ -152,6 +142,5 @@ int main() {
     }
 
     out.close();
-    std::cout << "\nResults saved to matvec_thread_results.txt\n";
     return 0;
 }

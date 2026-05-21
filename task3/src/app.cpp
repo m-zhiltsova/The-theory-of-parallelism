@@ -12,6 +12,9 @@
 #include <string>
 #include <cmath>
 #include <stdexcept>
+#include <iomanip>
+
+using namespace std;
 
 template <typename T>
 class Server {
@@ -59,7 +62,7 @@ public:
             fut = it->second;
             results_.erase(it);
         }
-        return fut.get();  
+        return fut.get();
     }
 
 private:
@@ -74,7 +77,7 @@ private:
                 auto task = std::move(tasks_.front());
                 tasks_.pop();
                 lock.unlock();
-                task();      
+                task();
             }
         }
     }
@@ -110,8 +113,8 @@ void client_thread(Server<double>& server,
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> dist_arg1(-10.0, 10.0);
-    std::uniform_real_distribution<double> dist_arg2(1.0, 10.0); 
-    std::uniform_real_distribution<double> dist_pow(-2.0, 5.0); 
+    std::uniform_real_distribution<double> dist_arg2(1.0, 10.0);
+    std::uniform_real_distribution<double> dist_pow(-2.0, 5.0);
 
     enum class TaskType { SIN, SQRT, POW };
     TaskType type;
@@ -156,7 +159,7 @@ void client_thread(Server<double>& server,
         std::cerr << "Cannot open output file " << filename << std::endl;
         return;
     }
-    out << std::fixed << std::setprecision(6);
+    out << std::fixed << std::setprecision(15);
     for (size_t i = 0; i < ids.size(); ++i) {
         double result = server.request_result(ids[i]);
         out << "id: " << ids[i] << ", result: " << result;
@@ -186,9 +189,15 @@ void test_results(const std::string& filename) {
     std::string line;
     int line_num = 0;
     const double eps = 1e-9;
+
     while (std::getline(in, line)) {
         ++line_num;
-        std::istringstream iss(line);
+
+        std::string clean_line;
+        for (char c : line)
+            if (c != ',') clean_line += c;
+
+        std::istringstream iss(clean_line);
         std::string token;
         size_t id;
         double result;
@@ -196,14 +205,33 @@ void test_results(const std::string& filename) {
         double arg1, arg2;
         bool has_arg2 = false;
 
-        if (!(iss >> token >> id)) { std::cerr << "Parse error line " << line_num << std::endl; continue; }
-        if (!(iss >> token >> token >> result)) { std::cerr << "Parse error line " << line_num << std::endl; continue; }
-        if (!(iss >> token >> token >> func)) { std::cerr << "Parse error line " << line_num << std::endl; continue; }
+        if (!(iss >> token >> id)) {
+            std::cerr << "Parse error line " << line_num << std::endl;
+            continue;
+        }
+        if (!(iss >> token >> result)) {
+            std::cerr << "Parse error line " << line_num << std::endl;
+            continue;
+        }
+        if (!(iss >> token >> func)) {
+            std::cerr << "Parse error line " << line_num << std::endl;
+            continue;
+        }
+
         if (func == "sin" || func == "sqrt") {
-            if (!(iss >> token >> arg1)) { std::cerr << "Parse error line " << line_num << std::endl; continue; }
+            if (!(iss >> token >> arg1)) {
+                std::cerr << "Parse error line " << line_num << std::endl;
+                continue;
+            }
         } else if (func == "pow") {
-            if (!(iss >> token >> token >> arg1)) { std::cerr << "Parse error line " << line_num << std::endl; continue; }
-            if (!(iss >> token >> arg2)) { std::cerr << "Parse error line " << line_num << std::endl; continue; }
+            if (!(iss >> token >> arg1)) {
+                std::cerr << "Parse error line " << line_num << std::endl;
+                continue;
+            }
+            if (!(iss >> token >> arg2)) {
+                std::cerr << "Parse error line " << line_num << std::endl;
+                continue;
+            }
             has_arg2 = true;
         } else {
             std::cerr << "Unknown function at line " << line_num << std::endl;
@@ -211,13 +239,13 @@ void test_results(const std::string& filename) {
         }
 
         double expected;
-        if (func == "sin") {
+        if (func == "sin")
             expected = std::sin(arg1);
-        } else if (func == "sqrt") {
+        else if (func == "sqrt")
             expected = std::sqrt(arg1);
-        } else if (func == "pow") {
+        else // pow
             expected = std::pow(arg1, arg2);
-        }
+
         if (std::abs(result - expected) > eps) {
             std::cerr << "Test FAILED at line " << line_num
                       << ": expected " << expected << ", got " << result << std::endl;
