@@ -2,7 +2,7 @@
 
 ### Умножение матрицы на вектор
     cmake -B build -S .
-    g++ -std=c++11 -pthread -O2 matvec_thread_only.cpp -o matvec_thread_only
+    g++ -std=c++11 -pthread -O2 dgemv.cpp -o dgemv 
 
 ### Клиент-серверное приложение
     cmake -B build -S .
