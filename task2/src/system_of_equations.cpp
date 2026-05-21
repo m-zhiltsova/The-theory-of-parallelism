@@ -20,6 +20,29 @@ void init_system(vector<double>& a, vector<double>& b, size_t n) {
     }
 }
 
+void solve_serial(const vector<double>& a, const vector<double>& b,
+                  vector<double>& x, vector<double>& xo,
+                  size_t n, double tau, double eps_target) {
+    double eps = 1.0;
+    while (eps > eps_target) {
+        double u = 0.0, b_2 = 0.0;
+        for (size_t i = 0; i < n; ++i) {
+            double mul_ax = 0.0;
+            for (size_t j = 0; j < n; ++j)
+                mul_ax += a[i * n + j] * xo[j];
+            x[i] = xo[i] - tau * (mul_ax - b[i]);
+            double diff = mul_ax - b[i];
+            u += diff * diff;
+            b_2 += b[i] * b[i];
+        }
+        for (size_t i = 0; i < n; ++i)
+            xo[i] = x[i];
+        u = sqrt(u);
+        b_2 = sqrt(b_2);
+        eps = u / b_2;
+    }
+}
+
 void variant_1(const vector<double>& a, const vector<double>& b,
                vector<double>& x, vector<double>& xo,
                size_t n, int count_t, double tau, double eps_target,
@@ -104,26 +127,44 @@ int main() {
     const int warmup_runs = 1;
     const int measure_runs = 5;
 
-    size_t N = 10000;
-    double serial_time_v1 = 0.0;
-    vector<double> a, b;
+    size_t N = 60000;
     double tau = 1.0 / (N + 1);
-    a.assign(N * N, 0.0);
-    b.resize(N);
+
+    vector<double> a(N * N), b(N);
     init_system(a, b, N);
+
+    double serial_time = 0.0;
+    {
+        vector<double> x(N), xo(N);
+        for (int i = 0; i < warmup_runs; ++i) {
+            fill(x.begin(), x.end(), 0.0);
+            fill(xo.begin(), xo.end(), 0.0);
+            solve_serial(a, b, x, xo, N, tau, eps_target);
+        }
+        double total = 0.0;
+        for (int i = 0; i < measure_runs; ++i) {
+            fill(x.begin(), x.end(), 0.0);
+            fill(xo.begin(), xo.end(), 0.0);
+            auto start = chrono::steady_clock::now();
+            solve_serial(a, b, x, xo, N, tau, eps_target);
+            auto end = chrono::steady_clock::now();
+            total += chrono::duration<double>(end - start).count();
+        }
+        serial_time = total / measure_runs;
+    }
+
+    cout << "Serial (no OpenMP): " << serial_time << " s" << endl;
 
     vector<int> threads = {1, 2, 4, 7, 8, 16, 20, 40};
     ofstream out("system_results.txt");
     out << fixed << setprecision(6);
-    out << "N=" << N << "\nThreads Variant1_time Variant2_time\n";
+    out << "N=" << N << "\nThreads Serial Variant1 Variant2\n";
 
-    cout << "Comparing variant 1 and variant 2:" << endl;
+    cout << "\nComparing serial, variant 1 and variant 2:" << endl;
     for (int p : threads) {
         double t1, t2;
 
-        if (p == 1) {
-            t1 = serial_time_v1;
-        } else {
+        {
             vector<double> x(N), xo(N);
             for (int i = 0; i < warmup_runs; ++i) {
                 fill(x.begin(), x.end(), 0.0);
@@ -161,8 +202,10 @@ int main() {
             t2 = total / measure_runs;
         }
 
-        out << p << " " << t1 << " " << t2 << "\n";
-        cout << "Threads: " << p << "  V1: " << t1 << " s  V2: " << t2 << " s" << endl;
+        out << p << " " << serial_time << " " << t1 << " " << t2 << "\n";
+        cout << "Threads: " << p
+             << "  V1: " << t1 << " s"
+             << "  V2: " << t2 << " s" << endl;
     }
 
     cout << "\nSchedule study (variant_1, N=" << N << ", threads=8):" << endl;
@@ -197,6 +240,5 @@ int main() {
     }
 
     out.close();
-    cout << "\nResults saved to system_results.txt" << endl;
     return 0;
 }
