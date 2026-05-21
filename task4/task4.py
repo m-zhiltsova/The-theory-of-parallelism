@@ -4,7 +4,6 @@ import sys
 import threading
 import time
 import queue
-from abc import ABC, abstractmethod
 from pathlib import Path
 
 import cv2
@@ -26,10 +25,9 @@ logging.basicConfig(
 logger = logging.getLogger("SensorApp")
 
 
-class Sensor(ABC):
-    @abstractmethod
+class Sensor():
     def get(self):
-        pass
+        raise NotImplementedError("Subclasses must implement method get()")
 
 
 class SensorX(Sensor):
@@ -143,10 +141,10 @@ def sensor_worker(sensor: Sensor, data_queue: queue.Queue, stop_event: threading
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Многопоточное отображение данных с датчиков.")
-    parser.add_argument("--camera", default="/dev/video0", help="Имя устройства камеры (по умолчанию /dev/video0)")
-    parser.add_argument("--resolution", default="1280x720", help="Желаемое разрешение камеры (ШxВ)")
-    parser.add_argument("--freq", type=float, default=30.0, help="Частота обновления окна (Гц)")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--camera", default="/dev/video0")
+    parser.add_argument("--resolution", default="1280x720")
+    parser.add_argument("--freq", type=float, default=30.0)
     args = parser.parse_args()
 
     target_fps = max(1.0, args.freq)
