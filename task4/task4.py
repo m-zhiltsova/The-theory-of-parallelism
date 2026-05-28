@@ -207,8 +207,15 @@ def main():
             img = cam_frame.copy()
             y_offset = 30
             for i, (name, _) in enumerate(sensors):
-                val = latest_data[name]
-                text = f"{name}: {val}"
+                if name == "Cam":
+                    if cam_frame is not None:
+                        h, w = cam_frame.shape[:2]
+                        text = f"{name}: Active ({w}x{h})"
+                    else:
+                        text = f"{name}: No frame"
+                else:
+                    val = latest_data[name]
+                    text = f"{name}: {val}"
                 cv2.putText(img, text, (10, y_offset + i * 30),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
