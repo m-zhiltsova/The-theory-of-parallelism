@@ -9,15 +9,18 @@ set(COMMON_SRCS main.cpp)
 
 add_executable(main_gpu ${COMMON_SRCS})
 target_compile_options(main_gpu PRIVATE -acc -Minfo=all -std=c++17)
+target_link_options(main_gpu PRIVATE -acc)
 target_include_directories(main_gpu PRIVATE ${Boost_INCLUDE_DIRS} ${CUDA_INC})
 target_link_libraries(main_gpu PRIVATE ${Boost_LIBRARIES})
 
 add_executable(main_multicore ${COMMON_SRCS})
 target_compile_options(main_multicore PRIVATE -acc=multicore -Minfo=all -std=c++17)
+target_link_options(main_multicore PRIVATE -acc=multicore)
 target_include_directories(main_multicore PRIVATE ${Boost_INCLUDE_DIRS} ${CUDA_INC})
 target_link_libraries(main_multicore PRIVATE ${Boost_LIBRARIES})
 
 add_executable(main_host ${COMMON_SRCS})
 target_compile_options(main_host PRIVATE -acc=host -Minfo=all -std=c++17)
+target_link_options(main_host PRIVATE -acc=host)
 target_include_directories(main_host PRIVATE ${Boost_INCLUDE_DIRS} ${CUDA_INC})
 target_link_libraries(main_host PRIVATE ${Boost_LIBRARIES})

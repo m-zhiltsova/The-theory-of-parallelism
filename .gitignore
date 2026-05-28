@@ -2,3 +2,4 @@ task*/build/
 *.out
 task*/*.txt
 task*/.venv
+nvhpc_2026_263_Linux_x86_64_cuda_13.1/
