@@ -42,7 +42,7 @@ class SensorX(Sensor):
 
 
 class SensorCam(Sensor):
-    MAX_CONSECUTIVE_ERRORS = 10  
+    MAX_CONSECUTIVE_ERRORS = 3
 
     def __init__(self, camera_name: str, resolution: str):
         self._camera_name = camera_name
@@ -88,7 +88,6 @@ class SensorCam(Sensor):
             )
             if self._consecutive_errors >= self.MAX_CONSECUTIVE_ERRORS:
                 logger.critical("Too many consecutive camera errors. Exiting.")
-                sys.exit(1)
             return None
         else:
             self._consecutive_errors = 0
@@ -142,7 +141,7 @@ def sensor_worker(sensor: Sensor, data_queue: queue.Queue, stop_event: threading
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--camera", default="/dev/video0")
+    parser.add_argument("--camera", default="/dev/video2")
     parser.add_argument("--resolution", default="1280x720")
     parser.add_argument("--freq", type=float, default=30.0)
     args = parser.parse_args()
@@ -154,9 +153,9 @@ def main():
         cam_sensor = SensorCam(args.camera, args.resolution)
     except SystemExit:
         raise
-    sensor0 = SensorX(0.01)
-    sensor1 = SensorX(0.1)
-    sensor2 = SensorX(1.0)
+    sensor0 = SensorX(0.01) # ~100Гц
+    sensor1 = SensorX(0.1)  # ~10Гц
+    sensor2 = SensorX(1.0)  # ~1Гц
 
     sensors = [
         ("Cam", cam_sensor),
@@ -188,6 +187,7 @@ def main():
 
     window = WindowImage(target_fps)
 
+    consecutive_none_frames = 0
     logger.info("Application started. Press 'q' to quit.")
     try:
         while True:
@@ -202,24 +202,26 @@ def main():
 
             cam_frame = latest_data["Cam"]
             if cam_frame is None:
-                cam_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-
-            img = cam_frame.copy()
-            y_offset = 30
-            for i, (name, _) in enumerate(sensors):
-                if name == "Cam":
-                    if cam_frame is not None:
+                consecutive_none_frames += 1
+                logger.warning("Camera frame is None (%d/3)", consecutive_none_frames)
+                if consecutive_none_frames >= 3:
+                    logger.critical("Three consecutive None frames received. Terminating.")
+                    break
+                pass
+            else:
+                consecutive_none_frames = 0
+                img = cam_frame.copy()
+                y_offset = 30
+                for i, (name, _) in enumerate(sensors):
+                    if name == "Cam":
                         h, w = cam_frame.shape[:2]
                         text = f"{name}: Active ({w}x{h})"
                     else:
-                        text = f"{name}: No frame"
-                else:
-                    val = latest_data[name]
-                    text = f"{name}: {val}"
-                cv2.putText(img, text, (10, y_offset + i * 30),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-
-            window.show(img)
+                        val = latest_data[name]
+                        text = f"{name}: {val}"
+                    cv2.putText(img, text, (10, y_offset + i * 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                window.show(img)
 
             key = window.wait_key(1) & 0xFF
             if key == ord('q'):
