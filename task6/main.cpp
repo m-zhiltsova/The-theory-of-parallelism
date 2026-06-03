@@ -78,13 +78,11 @@ int main(int argc, char** argv) {
     double* A = A_smart.get();
     double* Anew = Anew_smart.get();
 
-    double inner_error = 0.0;
-
     nvtxRangePushA("while");
     #pragma acc data copy(A[0:rows*cols], Anew[0:rows*cols])
     {
         while (error > tol && iter < iter_max) {
-            #pragma acc parallel loop collapse(2)
+            #pragma acc parallel loop collapse(2) present(A, Anew)
             for (int i = 1; i < rows - 1; ++i) {
                 for (int j = 1; j < cols - 1; ++j) {
                     Anew[offset(i, j, cols)] = 0.25 * (
@@ -97,8 +95,8 @@ int main(int argc, char** argv) {
             }
 
             if (iter % 1000 == 0) {
-                inner_error = 0.0;
-                #pragma acc parallel loop collapse(2) reduction(max:inner_error)
+                double inner_error = 0.0;
+                #pragma acc parallel loop collapse(2) reduction(max:inner_error) present(A, Anew)
                 for (int i = 1; i < rows - 1; ++i) {
                     for (int j = 1; j < cols - 1; ++j) {
                         inner_error = fmax(inner_error,
@@ -108,12 +106,7 @@ int main(int argc, char** argv) {
                 error = inner_error;
             }
 
-            #pragma acc parallel loop collapse(2)
-            for (int i = 1; i < rows - 1; ++i) {
-                for (int j = 1; j < cols - 1; ++j) {
-                    A[offset(i, j, cols)] = Anew[offset(i, j, cols)];
-                }
-            }
+            std::swap(A, Anew);
 
             if (iter % 10000 == 0)
                 std::cout << iter << ", ошибка = " << error << "\n";
