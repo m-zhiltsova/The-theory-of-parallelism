@@ -1,0 +1,8 @@
+mode;duration
+single;37.99
+multi(2);17.48
+multi(3);14.26
+multi(4);13.16
+multi(5);13.69
+multi(8);14.93
+multi(16);22.84
