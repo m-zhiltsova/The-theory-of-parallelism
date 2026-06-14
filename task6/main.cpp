@@ -105,8 +105,10 @@ int main(int argc, char** argv) {
                 }
                 error = inner_error;
             }
-
-            std::swap(A, Anew);
+            #pragma acc parallel loop collapse(2)
+            for (int i = 0; i < rows; ++i)
+                for (int j = 0; j < cols; ++j)
+                    A[i*cols + j] = Anew[i*cols + j];
 
             if (iter % 10000 == 0)
                 std::cout << iter << ", ошибка = " << error << "\n";
